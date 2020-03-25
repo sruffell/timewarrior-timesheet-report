@@ -9,7 +9,7 @@ use std::convert::TryInto;
 use std::fmt;
 use std::io::{self, BufRead};
 
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, RoundingStrategy};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -19,7 +19,7 @@ const WEEKDAYS: usize = 7;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Inclusion {
-    id: String,
+    id: i32,
     start: String,
     #[serde(default)]
     end: String,
@@ -188,7 +188,7 @@ impl Report {
             let mut project_total = Decimal::new(0, 0);
             for weekday in 0..value.len() {
                 project_data[weekday] =
-                    (Decimal::new(value[weekday], 0) / seconds_per_hour).round_dp(1);
+                    (Decimal::new(value[weekday], 0) / seconds_per_hour).round_dp_with_strategy(1, RoundingStrategy::RoundHalfUp);
                 project_total += project_data[weekday];
                 totals[weekday] += project_data[weekday];
             }
@@ -214,7 +214,7 @@ impl Report {
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fn write_project(report: &Report, f: &mut fmt::Formatter, project: &str, data: &RowT) -> fmt::Result {
-            write!(f, "{:>0width$} |", project, width = report.tag_width)?;
+            write!(f, "{:<0width$} |", project, width = report.tag_width)?;
             let zero = Decimal::new(0, 0);
             for val in data {
                 if val == &zero {
@@ -277,7 +277,7 @@ fn main() -> Result<(), io::Error> {
                 let result = factory.new_interval(&raw_json);
                 match result {
                     Ok(interval) => intervals.push(interval),
-                    Err(error) => println!("Failed to read {} {}", raw_json, error),
+                    Err(error) => eprintln!("Failed to read {} {}", raw_json, error),
                 }
             } else {
                 let parts: Vec<&str> = line.splitn(2, ':').collect();
