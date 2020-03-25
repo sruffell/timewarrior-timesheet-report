@@ -80,12 +80,18 @@ impl IntervalFactory {
         match result {
             Ok(json) => {
                 let mut projects: Vec<String> = Vec::new();
-                for i in json.as_array().unwrap().to_vec() {
+                let json_array = match json.as_array() {
+                    Some(array) => array,
+                    None => {
+                        return Some("not a valid JSON array".to_string());
+                    },
+                };
+                for i in json_array.to_vec() {
                     projects.push(i.to_string().trim_matches('"').to_string());
                 }
                 self.valid_projects = Some(projects);
             }
-            Err(error) => return Some(error.to_string()),
+            Err(error) => return Some(format!("Failed to parse projects: {}", error)),
         }
         None
     }
@@ -260,16 +266,25 @@ fn main() -> Result<(), io::Error> {
     let mut factory: IntervalFactory = IntervalFactory::new();
     let mut options: HashMap<String, String> = HashMap::new();
 
+    let mut parse_error = false;
     for _line in io::stdin().lock().lines() {
         let line = _line.unwrap();
         if line == "[" {
             options_finished = true;
             match options.get("timesheet.projects") {
                 Some(projects) => match factory.parse_projects(projects) {
-                    Some(error) => panic!("Failed to parse projects {} {}", projects, error),
+                    Some(error) => {
+                        eprintln!("Failed to parse timesheet.projects {} {}", projects, error);
+                        parse_error = true;
+                        break;
+                    },
                     None => (),
                 },
-                None => (),
+                None => { 
+                    eprintln!("Failed to find timesheet.projects configuration item.");
+                    parse_error = true;
+                    break;
+                },
             }
         } else if line != "" && line != "]" {
             if options_finished {
@@ -277,7 +292,10 @@ fn main() -> Result<(), io::Error> {
                 let result = factory.new_interval(&raw_json);
                 match result {
                     Ok(interval) => intervals.push(interval),
-                    Err(error) => eprintln!("Failed to read {} {}", raw_json, error),
+                    Err(error) => {
+                        parse_error = true;
+                        eprintln!("Failed to read {} {}", raw_json, error);
+                    },
                 }
             } else {
                 let parts: Vec<&str> = line.splitn(2, ':').collect();
@@ -286,6 +304,10 @@ fn main() -> Result<(), io::Error> {
                 options.insert(String::from(key), String::from(value));
             }
         }
+    }
+
+    if parse_error == true {
+        std::process::exit(1);
     }
 
     let report = Report::from_intervals(&options, &intervals);
