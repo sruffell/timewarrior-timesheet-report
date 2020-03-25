@@ -4,7 +4,7 @@ extern crate rust_decimal;
 extern crate serde_json;
 
 use std::cmp::max;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::convert::TryInto;
 use std::fmt;
 use std::io::{self, BufRead};
@@ -159,7 +159,7 @@ type RowT = Vec<Decimal>;
 
 #[derive(Debug)]
 pub struct Report {
-    data: HashMap<String, RowT>,
+    data: BTreeMap<String, RowT>,
     totals: RowT,
     column_width: usize,
     tag_width: usize,
@@ -168,7 +168,7 @@ pub struct Report {
 impl Report {
     pub fn from_intervals(_options: &HashMap<String, String>, intervals: &Vec<Interval>) -> Report {
         // Sum up the intervals into total seconds per project / per day
-        let mut raw_data: HashMap<String, Vec<i64>> = HashMap::new();
+        let mut raw_data: BTreeMap<String, Vec<i64>> = BTreeMap::new();
         for interval in intervals {
             let project_data = raw_data
                 .entry(String::from(&interval.project))
@@ -180,7 +180,7 @@ impl Report {
 
         let seconds_per_hour = Decimal::new(3600, 0);
 
-        let mut data: HashMap<String, RowT> = HashMap::new();
+        let mut data: BTreeMap<String, RowT> = BTreeMap::new();
         let mut totals: RowT = vec![Decimal::new(0, 0); WEEKDAYS + 1];
         // Convert the raw seconds into hours and 10ths of hours, and sum up the
         // totals
@@ -232,12 +232,6 @@ impl fmt::Display for Report {
             write!(f, "\n")
         }
 
-        let mut projects: Vec<&str> = Vec::new();
-        for k in self.data.keys() {
-            projects.push(k);
-        }
-        projects.sort();
-
         let separator = format!(
             "{}=|{}",
             "=".repeat(self.tag_width),
@@ -250,8 +244,8 @@ impl fmt::Display for Report {
         }
         write!(f, "\n{}\n", separator)?;
 
-        for key in projects {
-            write_project(self, f, key, self.data.get(key).unwrap())?;
+        for (key, value) in &self.data {
+            write_project(self, f, &key, &value)?;
         }
 
         write!(f, "{}\n", separator)?;
