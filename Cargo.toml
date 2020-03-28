@@ -1,5 +1,5 @@
 [package]
-name = "timewarrior-timesheet-report"
+name = "timewarrior_timesheet_report"
 version = "0.1.0"
 authors = ["Shaun Ruffell <sruffell@sruffell.net>"]
 edition = "2018"
