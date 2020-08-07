@@ -5,9 +5,12 @@ extension report.
 
 ## Install
 
-Copy the timesheet.py script to the $TIMEWARRIORDB/extension/ folder, then run
+~~Copy the timesheet.py script to the $TIMEWARRIORDB/extension/ folder, then run
 it with `timew report timesheet <range>` to see a timesheet for the
-specified interval.
+specified interval.~~
 
-Since this report is for entering weekly timesheets, the report range should
-be a Mon-Sun week interval (:week, :lastweek, etc..).
+~~Since this report is for entering weekly timesheets, the report range should
+be a Mon-Sun week interval (:week, :lastweek, etc..).~~
+
+I use the rust version of this report currently. I would still need to fix some
+rough edges to make it more generally useful.
